@@ -36,7 +36,7 @@ Using the following JSON
     "string":"value",
     "boolean":true,
     "number":1,
-    "array":["A","B",'C',"D","E"],
+    "array":["A","B","C","D","E"],
     "2d array": [[1,2],[3,4]],
     "3d array": [[[1,2],[3,4]],[[2,3],[4,5]]],
     "nodes":

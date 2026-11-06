@@ -40,10 +40,7 @@ namespace MiniJSON
 		public JSONValueType valuetype = JSONValueType.None;
 		public int position;
 
-		public override string ToString()
-		{
-			return $"Type: {type}, Value: {value}, Value Type: {valuetype}, Position: {position}";
-		}
+		public override string ToString() => $"Type: {type}, Value: {value}, Value Type: {valuetype}, Position: {position}";
 	}
 	public class JSONTokenizer
 	{
@@ -112,22 +109,10 @@ namespace MiniJSON
 			}
 			return tokens;
 		}
-		private bool IsDigit()
-		{
-			return (c >= '0' && c <= '9') || c == '.';
-		}
-		private bool IsString()
-		{
-			return c == '"' || c == '\'';
-		}
-		private bool IsIdentifier()
-		{
-			return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-1234567890".Contains(c);
-		}
-		private bool IsComment()
-		{
-			return c == '/' && (next == '/' || next == '*');
-		}
+		private bool IsDigit() => (c >= '0' && c <= '9') || c == '.';
+		private bool IsString() => c == '"' || c == '\'';
+		private bool IsIdentifier() => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-1234567890".Contains(c);
+		private bool IsComment() => c == '/' && (next == '/' || next == '*');
 		private JSONTokenType GetTokenType()
 		{
 			if (IsDigit())
@@ -319,7 +304,7 @@ namespace MiniJSON
 			}
 			Take(JSONTokenType.RCurl);
 			JSONNode node = new JSONNode();
-			node.values = values.ToArray();
+			node.values = values;
 			return node;
 		}
 		private JSONValue TakeValue()
@@ -380,11 +365,14 @@ namespace MiniJSON
 			}
 			return null;
 		}
-		private object[] TakeArray()
+		private List<object> TakeArray()
 		{
 			Take(JSONTokenType.LBracket);
 			if (token.type == JSONTokenType.RBacket)
-				return new object[0];
+			{
+				Take();
+				return [];
+			}
 			List<object> values = new List<object>();
 			do
 			{
@@ -407,7 +395,7 @@ namespace MiniJSON
 						break;
 				}
 			} while (Take(JSONTokenType.Comma, JSONTokenType.RBacket).type == JSONTokenType.Comma);
-			return values.ToArray();
+			return values;
 		}
 		private JSONToken Take()
 		{
@@ -475,14 +463,14 @@ namespace MiniJSON
 				((JSONNode)obj).Print(sb, indent);
 
 			}
-			else if (obj is object[])
+			else if (obj is List<object>)
 			{
-				object[] objects = (object[])obj;
+				List<object> objects = (List<object>)obj;
 
 				sb.Append($"\n{new string(' ', indent * 2)}[\n");
-				for (int i = 0; i < objects.Length; i++)
+				for (int i = 0; i < objects.Count; i++)
 				{
-					bool b = i != objects.Length - 1;
+					bool b = i != objects.Count - 1;
 					PrintObject(sb, objects[i], indent + 1, true, b);
 					if (b)
 						sb.Append("\n");
@@ -508,24 +496,24 @@ namespace MiniJSON
 	}
 	public class JSONNode
 	{
-		internal JSONValue[] values;
+		internal List<JSONValue> values = new List<JSONValue>();
 		public static bool CompatMode = false;
 		public static JSONNode Parse(string str)
 		{
 			return new JSONParser(new JSONTokenizer(str).Tokenize()).Parse();
 		}
-		public object[] GetArray(string name)
+		public List<object> GetArray(string name)
 		{
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < values.Count; i++)
 			{
-				if (values[i].name == name && values[i].value is object[])
-					return (object[])values[i].value;
+				if (values[i].name == name && values[i].value is List<object>)
+					return (List<object>)values[i].value;
 			}
-			return new object[0];
+			return [];
 		}
 		public T? GetValue<T>(string name)
 		{
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < values.Count; i++)
 			{
 				if (values[i].name == name && values[i].value is T)
 					return (T)values[i].value;
@@ -534,7 +522,7 @@ namespace MiniJSON
 		}
 		public void SetValue<T>(string name, T value)
 		{
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < values.Count; i++)
 			{
 				if (values[i].name == name && values[i].value is T)
 				{
@@ -542,6 +530,7 @@ namespace MiniJSON
 					return;
 				}
 			}
+			values.Add(new JSONValue(name, value));
 		}
 		public int GetInt(string name) => GetValue<int>(name);
 		public uint GetUInt(string name) => GetValue<uint>(name);
@@ -564,21 +553,27 @@ namespace MiniJSON
 		public void SetString(string name, string value) => SetValue<string>(name, value);
 		public void SetBool(string name, bool value) => SetValue<bool>(name, value);
 
-		public JSONNode? GetNode(string name)
+		public JSONNode GetNode(string name)
 		{
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < values.Count; i++)
 			{
 				if (values[i].name == name && values[i].value is JSONNode)
 					return (JSONNode)values[i].value;
 			}
-			return null;
+			return NewNode(name);
+		}
+		public JSONNode NewNode(string name)
+		{
+			JSONNode node = new JSONNode();
+			SetValue(name, node);
+			return node;
 		}
 		public void Print(StringBuilder sb, int indent = 0)
 		{
 			sb.Append($"{new string(' ', indent * 2)}{{");
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < values.Count; i++)
 			{
-				values[i].Print(sb, indent + 1, i + 1 != values.Length);
+				values[i].Print(sb, indent + 1, i + 1 != values.Count);
 			}
 			sb.Append($"\n{new string(' ', indent * 2)}}}");
 

@@ -56,9 +56,13 @@ namespace MiniJSON
 
             // Flip boolean
             node.SetBool("boolean", !node.GetBool("boolean"));
-            
-            // Save to output.json
-            File.WriteAllText("output.json", node.Print());
+
+            JSONNode node2 = node.GetNode("nodes").GetNode("node3");
+			node2.SetBool("boolean", false);
+
+
+			// Save to output.json
+			File.WriteAllText("output.json", node.Print());
         }
     }
 }
